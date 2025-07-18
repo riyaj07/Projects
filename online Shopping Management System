@@ -1,0 +1,217 @@
+# Projects
+//Model Classes POJOS
+
+// User.java
+public class User {
+    private int id;
+    private String name;
+    private String email;
+    private String passwordHash;
+    private String role; // ADMIN/CUSTOMER
+    // Getters/setters
+}
+
+// Product.java
+public class Product {
+    private int id;
+    private String name;
+    private String description;
+    private double price;
+    private int stock;
+    private String category;
+    // Getters/setters
+}
+
+// Order.java
+public class Order {
+    private int id;
+    private int userId;
+    private Date orderDate;
+    private double totalAmount;
+    private String status; // PENDING/SHIPPED/DELIVERED
+    // Getters/setters
+}
+
+//Database Schema
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role ENUM('ADMIN','CUSTOMER') DEFAULT 'CUSTOMER'
+);
+
+CREATE TABLE products (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    price DECIMAL(10,2) NOT NULL,
+    stock INT NOT NULL,
+    category VARCHAR(50)
+);
+
+CREATE TABLE orders (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    total_amount DECIMAL(10,2) NOT NULL,
+    status ENUM('PENDING','SHIPPED','DELIVERED') DEFAULT 'PENDING',
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+//DATA accsess layer (JDBC)
+// DBConnection.java
+public class DBConnection {
+    private static final String URL = "jdbc:mysql://localhost:3306/shopping_db";
+    private static final String USER = "root";
+    private static final String PASS = "password";
+
+    public static Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(URL, USER, PASS);
+    }
+}
+
+// ProductDAO.java
+public interface ProductDAO {
+    void addProduct(Product product);
+    Product getProductById(int id);
+    List<Product> getAllProducts();
+    void updateProduct(Product product);
+    void deleteProduct(int id);
+}
+
+// ProductDAOImpl.java (JDBC Implementation)
+public class ProductDAOImpl implements ProductDAO {
+    // JDBC CRUD operations implementation
+}
+
+//Business Logic Layer
+// ProductService.java
+public class ProductService {
+    private ProductDAO productDAO = new ProductDAOImpl();
+    
+    public void addProduct(Product product) {
+        productDAO.addProduct(product);
+    }
+    
+    public List<Product> getAllProducts() {
+        return productDAO.getAllProducts();
+    }
+    // Other service methods
+}
+
+//Controller
+// ProductServlet.java
+@WebServlet("/products")
+public class ProductServlet extends HttpServlet {
+    private ProductService productService = new ProductService();
+
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) 
+        throws ServletException, IOException {
+        
+        List<Product> products = productService.getAllProducts();
+        request.setAttribute("products", products);
+        request.getRequestDispatcher("/WEB-INF/views/products.jsp").forward(request, response);
+    }
+    
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) 
+        throws ServletException, IOException {
+        // Handle product creation
+    }
+}
+
+//FrontEnd (JSP + Bootsrap)
+<!-- products.jsp -->
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<div class="container">
+  <h2>Product List</h2>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Price</th>
+        <th>Stock</th>
+      </tr>
+    </thead>
+    <tbody>
+      <c:forEach items="${products}" var="product">
+        <tr>
+          <td>${product.id}</td>
+          <td>${product.name}</td>
+          <td>$${product.price}</td>
+          <td>${product.stock}</td>
+        </tr>
+      </c:forEach>
+    </tbody>
+  </table>
+</div>
+
+//User Authentication
+public class SecurityUtil {
+    public static String hashPassword(String password) {
+        return BCrypt.hashpw(password, BCrypt.gensalt());
+    }
+    
+    public static boolean checkPassword(String candidate, String hashed) {
+        return BCrypt.checkpw(candidate, hashed);
+    }
+}
+
+//Shopping Cart
+// CartServlet.java
+@WebServlet("/cart")
+public class CartServlet extends HttpServlet {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) {
+        HttpSession session = request.getSession();
+        Map<Integer, CartItem> cart = (Map<Integer, CartItem>) session.getAttribute("cart");
+        // Add/remove items
+    }
+}
+
+//Search Filtering
+// ProductDAOImpl.java
+public List<Product> searchProducts(String keyword, String category) {
+    String sql = "SELECT * FROM products WHERE name LIKE ? AND category=?";
+    // JDBC implementation
+}
+
+//Maven Dependencies (pom.xml)
+<dependencies>
+    <!-- Jakarta EE -->
+    <dependency>
+        <groupId>jakarta.platform</groupId>
+        <artifactId>jakarta.jakartaee-web-api</artifactId>
+        <version>10.0.0</version>
+        <scope>provided</scope>
+    </dependency>
+    
+    <!-- MySQL Connector -->
+    <dependency>
+        <groupId>mysql</groupId>
+        <artifactId>mysql-connector-java</artifactId>
+        <version>8.0.33</version>
+    </dependency>
+    
+    <!-- BCrypt Password Hashing -->
+    <dependency>
+        <groupId>org.mindrot</groupId>
+        <artifactId>jbcrypt</artifactId>
+        <version>0.4</version>
+    </dependency>
+    
+    <!-- JSTL -->
+    <dependency>
+        <groupId>jakarta.servlet.jsp.jstl</groupId>
+        <artifactId>jakarta.servlet.jsp.jstl-api</artifactId>
+        <version>3.0.0</version>
+    </dependency>
+    
+    <!-- JUnit Testing -->
+    <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter</artifactId>
+        <version>5.9.2</version>
+        <scope>test</scope>
+    </dependency>
+</dependencies>
